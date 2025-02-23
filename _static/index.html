@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brain Vertex Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      background-color: black;
+    }
+    #brain-image {
+      max-width: 80%;
+      max-height: 80%;
+      object-fit: contain;
+    }
+    #info-container {
+      position: fixed;
+      bottom: 10px;
+      left: 10px; /* text in the bottom-left corner */
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    #vertex-info, #file-name {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+  <!-- Include jQuery from CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <!-- Brain image -->
+  <img id="brain-image" src="_static/ico8brain.png" alt="Brain Image">
+
+  <!-- info-container, file-name, vertex-info -->
+  <div id="info-container">
+      <p id="file-name"></p>
+      <p id="vertex-info">Hover over the image to see vertex information</p>
+  </div>
+
+  <script>
+    // Global variables for data and scaling factors
+    let mappingData = null,
+        lookupTableIco8 = null,
+        lookupTableIco16 = null,
+        lookupTableIco32 = null,
+        lookupTableIco64 = null,
+        originalWidth = 0,
+        originalHeight = 0,
+        scaleX = 1,
+        scaleY = 1;
+
+    const image = $('#brain-image');
+    const vertexInfo = $('#vertex-info');
+    const fileNameInfo = $('#file-name');
+
+    // Display the file name of the brain image
+    function displayFileName() {
+      const fileName = image.attr('src').split('/').pop();
+      fileNameInfo.text(`File: ${fileName}`);
+    }
+
+    // Load JSON files using jQuery's getJSON
+    function loadData() {
+      // Adjust paths to your JSON files as needed
+      $.when(
+        $.getJSON("mapping_data_ico128.json", function(data) {
+          mappingData = data;
+          originalHeight = mappingData.length;
+          originalWidth = mappingData[0].length;
+          console.log(`Mapping data loaded: (${originalWidth} x ${originalHeight})`);
+        }),
+        $.getJSON("lookup_table_ico8.json", function(data) {
+          lookupTableIco8 = data;
+          console.log("Lookup table ico8 loaded");
+        }),
+        $.getJSON("lookup_table_ico16.json", function(data) {
+          lookupTableIco16 = data;
+          console.log("Lookup table ico16 loaded");
+        }),
+        $.getJSON("lookup_table_ico32.json", function(data) {
+          lookupTableIco32 = data;
+          console.log("Lookup table ico32 loaded");
+        }),
+        $.getJSON("lookup_table_ico64.json", function(data) {
+          lookupTableIco64 = data;
+          console.log("Lookup table ico64 loaded");
+        })
+      ).done(function() {
+        console.log("All JSON files loaded successfully.");
+        updateDisplaySize();  // Now that we have original dimensions, update scale factors
+      });
+    }
+
+    // Calculate scaling factors based on displayed image size vs. original data size
+    function updateDisplaySize() {
+      const rect = image[0].getBoundingClientRect();
+      const displayWidth = rect.width;
+      const displayHeight = rect.height;
+      scaleX = originalWidth / displayWidth;
+      scaleY = originalHeight / displayHeight;
+      console.log(`Display size: ${displayWidth} x ${displayHeight}`);
+      console.log(`Scaling factors: scaleX=${scaleX}, scaleY=${scaleY}`);
+    }
+
+    // Given mouse coordinates in the original (scaled) space, return the vertex index
+    function getVertexFromMapping(mouseX, mouseY) {
+      if (mouseY >= 0 && mouseY < originalHeight && mouseX >= 0 && mouseX < originalWidth) {
+        const vertex = mappingData[mouseY][mouseX];
+        return (vertex !== -1) ? vertex : null;
+      }
+      return null;
+    }
+
+    // When document is ready, load data and set up event handlers
+    $(document).ready(function() {
+      displayFileName();
+      loadData();
+
+      // Update display size on window resize
+      $(window).resize(function() {
+        updateDisplaySize();
+      });
+
+      // Process mouse movement over the image
+      image.on('mousemove', function(event) {
+        const rect = this.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+    
+        if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+          // Scale mouse coordinates to the original data space
+          const mouseXOriginal = Math.floor(x * scaleX);
+          const mouseYOriginal = Math.floor(y * scaleY);
+          console.log(`Mouse: (${x.toFixed(1)}, ${y.toFixed(1)}) -> Scaled: (${mouseXOriginal}, ${mouseYOriginal})`);
+          
+          // Get vertex from mapping
+          const vertex = getVertexFromMapping(mouseXOriginal, mouseYOriginal);
+    
+          if (vertex !== null) {
+            const ico8 = lookupTableIco8[vertex];
+            const ico16 = lookupTableIco16[vertex];
+            const ico32 = lookupTableIco32[vertex];
+            const ico64 = lookupTableIco64[vertex];
+            vertexInfo.html(
+              `ico8: ${ico8} <br>
+               ico16: ${ico16} <br>
+               ico32: ${ico32} <br>
+               ico64: ${ico64} <br>
+               ico128: ${vertex}`
+            );
+          } else {
+            vertexInfo.text('No vertex selected');
+          }
+        } else {
+          vertexInfo.text('No vertex selected');
+        }
+      });
+    
+      // Clear vertex info when mouse leaves the image
+      image.on('mouseleave', function() {
+        vertexInfo.text('No vertex selected');
+      });
+    });
+  </script>
+</body>
+</html>
