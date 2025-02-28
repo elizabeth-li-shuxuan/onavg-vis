@@ -15,6 +15,7 @@
       align-items: center;
       color: white;
       background-color: black;
+      flex-direction: column;
     }
     #brain-image {
       max-width: 80%;
@@ -34,15 +35,29 @@
       margin: 0;
       padding: 0;
     }
+    #upload-container {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
   </style>
   <!-- Include jQuery from CDN -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-  <!-- Brain image -->
-  <img id="brain-image" src="_static/ico8brain.png" alt="Brain Image">
+  <!-- Upload container -->
+  <div id="upload-container">
+    <input type="file" id="imageUpload" accept="image/*">
+  </div>
 
-  <!-- info-container, file-name, vertex-info -->
+  <!-- Brain image (default image, to be replaced on upload) -->
+  <img id="brain-image" src="ico8brain.png" alt="Brain Image">
+
+  <!-- info-container: file-name and vertex-info -->
   <div id="info-container">
       <p id="file-name"></p>
       <p id="vertex-info">Hover over the image to see vertex information</p>
@@ -64,45 +79,44 @@
     const vertexInfo = $('#vertex-info');
     const fileNameInfo = $('#file-name');
 
-    // Display the file name of the brain image
+    // Display the file name from the image source
     function displayFileName() {
       const fileName = image.attr('src').split('/').pop();
       fileNameInfo.text(`File: ${fileName}`);
     }
 
-    // Load JSON files using jQuery's getJSON
+    // Load JSON files using jQuery's getJSON (client-side only)
     function loadData() {
-      // Adjust paths to your JSON files as needed
       $.when(
-        $.getJSON("_static/mapping_data_ico128.json", function(data) {
+        $.getJSON("mapping_data_ico128.json", function(data) {
           mappingData = data;
           originalHeight = mappingData.length;
           originalWidth = mappingData[0].length;
           console.log(`Mapping data loaded: (${originalWidth} x ${originalHeight})`);
         }),
-        $.getJSON("_static/lookup_table_ico8.json", function(data) {
+        $.getJSON("lookup_table_ico8.json", function(data) {
           lookupTableIco8 = data;
           console.log("Lookup table ico8 loaded");
         }),
-        $.getJSON("_static/lookup_table_ico16.json", function(data) {
+        $.getJSON("lookup_table_ico16.json", function(data) {
           lookupTableIco16 = data;
           console.log("Lookup table ico16 loaded");
         }),
-        $.getJSON("_static/lookup_table_ico32.json", function(data) {
+        $.getJSON("lookup_table_ico32.json", function(data) {
           lookupTableIco32 = data;
           console.log("Lookup table ico32 loaded");
         }),
-        $.getJSON("_static/lookup_table_ico64.json", function(data) {
+        $.getJSON("lookup_table_ico64.json", function(data) {
           lookupTableIco64 = data;
           console.log("Lookup table ico64 loaded");
         })
       ).done(function() {
         console.log("All JSON files loaded successfully.");
-        updateDisplaySize();  // Now that we have original dimensions, update scale factors
+        updateDisplaySize();  // Update scale factors after loading dimensions
       });
     }
 
-    // Calculate scaling factors based on displayed image size vs. original data size
+    // Update scaling factors based on current image display size vs. original data size
     function updateDisplaySize() {
       const rect = image[0].getBoundingClientRect();
       const displayWidth = rect.width;
@@ -113,7 +127,7 @@
       console.log(`Scaling factors: scaleX=${scaleX}, scaleY=${scaleY}`);
     }
 
-    // Given mouse coordinates in the original (scaled) space, return the vertex index
+    // Given mouse coordinates in the scaled space, return the vertex index from mapping data
     function getVertexFromMapping(mouseX, mouseY) {
       if (mouseY >= 0 && mouseY < originalHeight && mouseX >= 0 && mouseX < originalWidth) {
         const vertex = mappingData[mouseY][mouseX];
@@ -122,12 +136,26 @@
       return null;
     }
 
-    // When document is ready, load data and set up event handlers
+    // Client-side image upload: update displayed image and file name
+    $('#imageUpload').on('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        fileNameInfo.text(`File: ${file.name}`);
+        const imageUrl = URL.createObjectURL(file);
+        image.attr('src', imageUrl);
+        // Once the new image is loaded, update display size
+        image.on('load', function() {
+          updateDisplaySize();
+        });
+      }
+    });
+
+    // When the document is ready, load JSON data and setup event handlers
     $(document).ready(function() {
       displayFileName();
       loadData();
 
-      // Update display size on window resize
+      // Update scaling factors when window is resized
       $(window).resize(function() {
         updateDisplaySize();
       });
@@ -139,12 +167,10 @@
         const y = event.clientY - rect.top;
     
         if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-          // Scale mouse coordinates to the original data space
           const mouseXOriginal = Math.floor(x * scaleX);
           const mouseYOriginal = Math.floor(y * scaleY);
           console.log(`Mouse: (${x.toFixed(1)}, ${y.toFixed(1)}) -> Scaled: (${mouseXOriginal}, ${mouseYOriginal})`);
           
-          // Get vertex from mapping
           const vertex = getVertexFromMapping(mouseXOriginal, mouseYOriginal);
     
           if (vertex !== null) {
