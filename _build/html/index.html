@@ -169,25 +169,25 @@
     // Load JSON files using jQuery's getJSON (client-side only)
     function loadData() {
       $.when(
-        $.getJSON("mapping_data_ico128.json", function(data) {
+        $.getJSON("_static/mapping_data_ico128.json", function(data) {
           mappingData = data;
           originalHeight = mappingData.length;
           originalWidth = mappingData[0].length;
           console.log(`Mapping data loaded: (${originalWidth} x ${originalHeight})`);
         }),
-        $.getJSON("lookup_table_ico8.json", function(data) {
+        $.getJSON("_static/lookup_table_ico8.json", function(data) {
           lookupTableIco8 = data;
           console.log("Lookup table ico8 loaded");
         }),
-        $.getJSON("lookup_table_ico16.json", function(data) {
+        $.getJSON("_static/lookup_table_ico16.json", function(data) {
           lookupTableIco16 = data;
           console.log("Lookup table ico16 loaded");
         }),
-        $.getJSON("lookup_table_ico32.json", function(data) {
+        $.getJSON("_static/lookup_table_ico32.json", function(data) {
           lookupTableIco32 = data;
           console.log("Lookup table ico32 loaded");
         }),
-        $.getJSON("lookup_table_ico64.json", function(data) {
+        $.getJSON("_static/lookup_table_ico64.json", function(data) {
           lookupTableIco64 = data;
           console.log("Lookup table ico64 loaded");
         })
