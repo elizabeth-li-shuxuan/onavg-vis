@@ -151,21 +151,22 @@
         lookupTableIco16 = null,
         lookupTableIco32 = null,
         lookupTableIco64 = null,
+        lookupTableIco128 = null,  // New lookup table variable for ico128
         originalWidth = 0,
         originalHeight = 0,
         scaleX = 1,
         scaleY = 1;
-
+  
     const image = $('#brain-image');
     const vertexInfo = $('#vertex-info');
     const fileNameInfo = $('#file-name');
-
+  
     // Display the file name from the image source
     function displayFileName() {
       const fileName = image.attr('src').split('/').pop();
       fileNameInfo.text(`File: ${fileName}`);
     }
-
+  
     // Load JSON files using jQuery's getJSON (client-side only)
     function loadData() {
       $.when(
@@ -190,13 +191,17 @@
         $.getJSON("_static/lookup_table_ico64.json", function(data) {
           lookupTableIco64 = data;
           console.log("Lookup table ico64 loaded");
+        }),
+        $.getJSON("_static/lookup_table_ico128.json", function(data) { // New JSON load for ico128 lookup table
+          lookupTableIco128 = data;
+          console.log("Lookup table ico128 loaded");
         })
       ).done(function() {
         console.log("All JSON files loaded successfully.");
         updateDisplaySize();  // Update scale factors after loading dimensions
       });
     }
-
+  
     // Update scaling factors based on current image display size vs. original data size
     function updateDisplaySize() {
       const rect = image[0].getBoundingClientRect();
@@ -207,7 +212,7 @@
       console.log(`Display size: ${displayWidth} x ${displayHeight}`);
       console.log(`Scaling factors: scaleX=${scaleX}, scaleY=${scaleY}`);
     }
-
+  
     // Given mouse coordinates in the scaled space, return the vertex index from mapping data
     function getVertexFromMapping(mouseX, mouseY) {
       if (mouseY >= 0 && mouseY < originalHeight && mouseX >= 0 && mouseX < originalWidth) {
@@ -216,7 +221,7 @@
       }
       return null;
     }
-
+  
     // Handle image upload, update the displayed image and file name
     $('#imageUpload').on('change', function(event) {
       const file = event.target.files[0];
@@ -232,17 +237,17 @@
         });
       }
     });
-
+  
     // When the document is ready, load JSON data and set up event handlers
     $(document).ready(function() {
       displayFileName();
       loadData();
-
+  
       // Update display size on window resize
       $(window).resize(function() {
         updateDisplaySize();
       });
-
+  
       // Process mouse movement over the image
       image.on('mousemove', function(event) {
         const rect = this.getBoundingClientRect();
@@ -261,12 +266,14 @@
             const ico16 = lookupTableIco16[vertex];
             const ico32 = lookupTableIco32[vertex];
             const ico64 = lookupTableIco64[vertex];
+            const ico128 = lookupTableIco128[vertex]; // New lookup for ico128
             vertexInfo.html(
               `ico8: ${ico8} <br>
                ico16: ${ico16} <br>
                ico32: ${ico32} <br>
                ico64: ${ico64} <br>
-               ico128: ${vertex}`
+               ico128: ${ico128} <br>
+               ${/* ico128 mapping data: ${vertex} <br> */ ''}`
             );
           } else {
             vertexInfo.text('No vertex selected');
@@ -281,6 +288,6 @@
         vertexInfo.text('No vertex selected');
       });
     });
-  </script>
+  </script>  
 </body>
 </html>
